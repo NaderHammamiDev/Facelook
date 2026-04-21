@@ -1,0 +1,93 @@
+import tkinter as tk
+from tkinter import messagebox
+
+class EnrollmentWindow:
+    def __init__(self, master, detector, auth, get_current_frame):
+        self.master = master
+        self.master.title("Enrollment")
+        self.detector = detector
+        self.auth = auth
+        self.get_current_frame = get_current_frame  # 🔹 récupérer frame principale
+
+        tk.Label(master, text="Entrez le nom de l'utilisateur :").pack(pady=10)
+
+        self.entry = tk.Entry(master)
+        self.entry.pack(pady=5)
+
+        tk.Button(master, text="Capturer le visage", command=self.capture_face).pack(pady=10)
+
+    def capture_face(self):
+        name = self.entry.get().strip()
+        if not name:
+            messagebox.showerror("Erreur", "Nom requis")
+            return
+
+        # 🔹 récupère la frame actuelle de la caméra principale
+        frame = self.get_current_frame()
+        if frame is None:
+            messagebox.showerror("Erreur", "Aucune image disponible")
+            return
+
+        boxes = self.detector.detect_faces(frame)
+        if not boxes:
+            messagebox.showerror("Erreur", "Aucun visage détecté")
+            return
+
+        face_img = self.detector.extract_face(frame, boxes[0])
+        success = self.auth.enroll_user(name, face_img)
+
+        if success:
+            messagebox.showinfo("Succès", f"{name} ajouté avec succès!")
+            self.master.destroy()
+        else:
+            messagebox.showerror("Erreur", "Impossible d'enregistrer le visage")
+
+
+
+
+
+
+
+
+
+
+
+
+import tkinter as tk
+
+class SettingsWindow:
+    def __init__(self, master, threshold=0.6):
+        self.master = master
+        self.master.title("Paramètres FaceLock")
+
+        self.threshold = tk.DoubleVar(value=threshold)
+
+        tk.Label(master, text="Seuil de reconnaissance:").pack(pady=10)
+        tk.Scale(master, from_=0.3, to=1.0, resolution=0.01,
+                 orient=tk.HORIZONTAL, variable=self.threshold).pack(pady=5)
+
+        tk.Button(master, text="Sauvegarder", command=self.save).pack(pady=10)
+
+    def save(self):
+        # Ici, on pourrait mettre à jour l'authenticator global
+        print("Seuil mis à jour:", self.threshold.get())
+        self.master.destroy()
+
+
+
+
+
+
+
+import tkinter as tk
+
+class StatusIndicator:
+    def __init__(self, master):
+        self.master = master
+        self.master.title("FaceLock Status")
+        self.status_label = tk.Label(master, text="Status: Inactif", font=("Arial", 14))
+        self.status_label.pack(padx=20, pady=20)
+
+    def update_status(self, active=True):
+        text = "Status: Actif" if active else "Status: Inactif"
+        self.status_label.config(text=text)
