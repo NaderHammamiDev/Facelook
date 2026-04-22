@@ -9,182 +9,177 @@ class EnrollmentWindow:
         self.auth = auth
         self.get_current_frame = get_current_frame
 
-        self.frame = ctk.CTkFrame(master)
-        self.frame.pack(padx=20, pady=20)
+        ctk.set_appearance_mode("dark")
 
-        # RGPD INFO
+        # ================= MAIN FRAME =================
+        self.frame = ctk.CTkFrame(master, corner_radius=15)
+        self.frame.pack(padx=20, pady=20, fill="both", expand=True)
+
+        # ================= HEADER =================
+        ctk.CTkLabel(
+            self.frame,
+            text="🧠 FaceLock Enrollment",
+            font=("Arial", 22, "bold")
+        ).pack(pady=10)
+
+        # ================= RGPD INFO =================
         policy = self.auth.db.get_privacy_policy()
 
-        ctk.CTkLabel(
-            self.frame,
-            text="Finalité : authentification faciale sécurisée",
-            text_color="gray"
-        ).pack(pady=5)
+        info = ctk.CTkFrame(self.frame, fg_color="transparent")
+        info.pack(pady=5)
 
-        ctk.CTkLabel(
-            self.frame,
-            text=f"RGPD v{policy['version']} - {policy['date']}",
-            text_color="gray"
-        ).pack(pady=5)
+        ctk.CTkLabel(info, text="Finalité : authentification biométrique").pack()
+        ctk.CTkLabel(info, text=f"RGPD v{policy['version']} - {policy['date']}").pack()
 
-        # USERNAME
-        self.entry = ctk.CTkEntry(self.frame, placeholder_text="Nom utilisateur")
-        self.entry.pack(pady=10)
+        # ================= FORM =================
+        form = ctk.CTkFrame(self.frame, corner_radius=10)
+        form.pack(pady=10, padx=10, fill="x")
 
-        # ROLE
-        self.role = ctk.CTkComboBox(self.frame, values=["user", "admin"])
-        self.role.set("user")
-        self.role.pack(pady=5)
+        self.entry = ctk.CTkEntry(form, placeholder_text="Nom utilisateur")
+        self.entry.pack(pady=8, padx=10, fill="x")
 
-        # CONSENT
         self.consent = ctk.BooleanVar(value=False)
 
         ctk.CTkCheckBox(
-            self.frame,
-            text="J'accepte les données biométriques",
+            form,
+            text="Consentement biométrique RGPD",
             variable=self.consent
         ).pack(pady=10)
 
-        # BUTTONS
-        ctk.CTkButton(self.frame, text="Capturer visage",
-                      command=self.capture_face).pack(pady=5)
+        # ================= STATUS =================
+        self.status = ctk.CTkLabel(self.frame, text="")
+        self.status.pack(pady=5)
 
-        ctk.CTkButton(self.frame, text="Supprimer utilisateur",
-                      fg_color="red",
-                      command=self.delete_user).pack(pady=5)
+        # ================= ACTIONS =================
+        actions = ctk.CTkFrame(self.frame, fg_color="transparent")
+        actions.pack(pady=10, fill="x")
 
-        ctk.CTkButton(self.frame, text="Voir mes données",
-                      command=self.view_data).pack(pady=5)
+        ctk.CTkButton(actions, text="📸 Capturer visage", command=self.capture_face).pack(pady=5, fill="x")
+        ctk.CTkButton(actions, text="🗑 Supprimer utilisateur", fg_color="red", command=self.delete_user).pack(pady=5, fill="x")
+        ctk.CTkButton(actions, text="📄 Export PDF", command=self.export_pdf).pack(pady=5, fill="x")
+        ctk.CTkButton(actions, text="📊 Export JSON", command=self.export_json).pack(pady=5, fill="x")
+        ctk.CTkButton(actions, text="📁 Export CSV", command=self.export_csv).pack(pady=5, fill="x")
 
-        ctk.CTkButton(self.frame, text="Exporter PDF",
-                      command=self.export_pdf).pack(pady=5)
-
-        ctk.CTkButton(self.frame, text="Exporter JSON",
-                      command=self.export_json).pack(pady=5)
-
-        ctk.CTkButton(self.frame, text="Exporter CSV",
-                      command=self.export_csv).pack(pady=5)
-
-    # =========================
+    # ================= GET NAME =================
     def _get_name(self):
         name = self.entry.get().strip()
         if not name:
-            messagebox.showerror("Erreur", "Nom requis")
+            self.status.configure(text="✖ Nom requis", text_color="red")
             return None
         return name
 
-    # =========================
-    def _check_identity(self, name):
-        """
-        🔐 Vérifie si le visage reconnu correspond à l'utilisateur
-        """
-        if not hasattr(self.auth, "current_user"):
+    # ================= 🔐 VERIFY FACE =================
+    def _verify_face(self, name):
+        frame = self.get_current_frame()
+
+        if frame is None:
+            self.status.configure(text="✖ Caméra indisponible", text_color="red")
             return False
-        return self.auth.current_user == name
 
-    # =========================
-    def view_data(self):
-        name = self._get_name()
-        if not name:
-            return
+        boxes = self.detector.detect_faces(frame)
 
-        data = self.auth.db.get_user_data(name)
+        if not boxes:
+            self.status.configure(text="✖ Aucun visage détecté", text_color="red")
+            return False
 
-        if not data:
-            messagebox.showerror("Erreur", "Utilisateur introuvable")
-            return
+        face = self.detector.extract_face(frame, boxes[0])
 
-        messagebox.showinfo(
-            "Données",
-            "\n".join(f"{k}: {v}" for k, v in data.items())
-        )
+        user = self.auth.authenticate(face)
 
-    # =========================
-    # 🔐 EXPORTS SECURISÉS
-    # =========================
-    def export_pdf(self):
-        name = self._get_name()
-        if not name:
-            return
+        if user != name:
+            return False
 
-        if not self._check_identity(name):
-            messagebox.showerror("Erreur", "Visage non reconnu")
-            return
+        return True
 
-        path = self.auth.export_user_pdf(name)
-        messagebox.showinfo("Export PDF", path if path else "Échec export")
-
-    def export_json(self):
-        name = self._get_name()
-        if not name:
-            return
-
-        if not self._check_identity(name):
-            messagebox.showerror("Erreur", "Visage non reconnu")
-            return
-
-        path = self.auth.export_user_json(name)
-        messagebox.showinfo("Export JSON", path if path else "Échec export")
-
-    def export_csv(self):
-        name = self._get_name()
-        if not name:
-            return
-
-        if not self._check_identity(name):
-            messagebox.showerror("Erreur", "Visage non reconnu")
-            return
-
-        path = self.auth.export_user_csv(name)
-        messagebox.showinfo("Export CSV", path if path else "Échec export")
-
-    # =========================
-    # 📸 ENROLL FACE
-    # =========================
+    # ================= 📸 CAPTURE FACE =================
     def capture_face(self):
         name = self._get_name()
         if not name:
             return
 
         if not self.consent.get():
-            messagebox.showerror("Erreur", "Consentement requis")
+            self.status.configure(text="✖ Consentement requis", text_color="red")
             return
 
         frame = self.get_current_frame()
 
         if frame is None:
-            messagebox.showerror("Erreur", "Caméra indisponible")
+            self.status.configure(text="✖ Caméra indisponible", text_color="red")
             return
 
         boxes = self.detector.detect_faces(frame)
 
         if not boxes:
-            messagebox.showerror("Erreur", "Aucun visage détecté")
+            self.status.configure(text="✖ Aucun visage détecté", text_color="red")
             return
 
         face = self.detector.extract_face(frame, boxes[0])
-        role = self.role.get()
+
+        role = "user"
 
         success = self.auth.enroll_user(name, face, True, role)
 
         if success:
-            messagebox.showinfo("OK", f"{name} ajouté ({role})")
+            self.status.configure(
+                text=f"✔ {name} enregistré avec succès",
+                text_color="green"
+            )
         else:
-            messagebox.showerror("Erreur", "Échec enregistrement")
+            self.status.configure(
+                text="✖ Échec enregistrement",
+                text_color="red"
+            )
 
-    # =========================
-    # 🗑 DELETE SECURISÉ
-    # =========================
+    # ================= DELETE USER =================
     def delete_user(self):
         name = self._get_name()
         if not name:
             return
 
-        if not self._check_identity(name):
-            messagebox.showerror("Erreur", "Visage non reconnu")
+        if not self._verify_face(name):
+            self.status.configure(text="✖ Visage non reconnu", text_color="red")
             return
 
         if self.auth.delete_user(name):
-            messagebox.showinfo("OK", "Utilisateur supprimé")
+            self.status.configure(text="✔ Utilisateur supprimé", text_color="green")
         else:
-            messagebox.showerror("Erreur", "Introuvable")
+            self.status.configure(text="✖ Introuvable", text_color="red")
+
+    # ================= EXPORT PDF =================
+    def export_pdf(self):
+        name = self._get_name()
+        if not name:
+            return
+
+        if not self._verify_face(name):
+            self.status.configure(text="✖ Visage non reconnu", text_color="red")
+            return
+
+        self.auth.export_user_pdf(name)
+        self.status.configure(text="✔ PDF exporté", text_color="green")
+
+    # ================= EXPORT JSON =================
+    def export_json(self):
+        name = self._get_name()
+        if not name:
+            return
+
+        if not self._verify_face(name):
+            self.status.configure(text="✖ Visage non reconnu", text_color="red")
+            return
+
+        self.auth.export_user_json(name)
+        self.status.configure(text="✔ JSON exporté", text_color="green")
+
+    # ================= EXPORT CSV =================
+    def export_csv(self):
+        name = self._get_name()
+        if not name:
+            return
+
+        if not self._verify_face(name):
+            self.status.configure(text="✖ Visage non reconnu", text_color="red")
+            return
+
+        self.auth.export_user_csv(name)
+        self.status.configure(text="✔ CSV exporté", text_color="green")

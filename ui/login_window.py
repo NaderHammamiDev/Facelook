@@ -10,51 +10,56 @@ class LoginWindow:
         self.on_success = on_success
         self.db = DatabaseManager()
 
+        ctk.set_appearance_mode("dark")
+
         self.root.title("FaceLock Login")
-        self.root.geometry("400x300")
+        self.root.geometry("450x350")
 
-        frame = ctk.CTkFrame(root)
-        frame.pack(expand=True, fill="both", padx=20, pady=20)
+        # ================= CENTER FRAME =================
+        self.frame = ctk.CTkFrame(root, corner_radius=15)
+        self.frame.place(relx=0.5, rely=0.5, anchor="center")
 
-        ctk.CTkLabel(frame, text="🔐 FaceLock Login", font=("Arial", 18)).pack(pady=20)
+        # TITLE
+        ctk.CTkLabel(
+            self.frame,
+            text="🔐 FaceLock System",
+            font=("Arial", 22, "bold")
+        ).pack(pady=15)
 
-        self.username = ctk.CTkEntry(frame, placeholder_text="Username")
-        self.username.pack(pady=10)
+        # USERNAME
+        self.username = ctk.CTkEntry(self.frame, placeholder_text="Username")
+        self.username.pack(pady=10, padx=20, fill="x")
 
-        self.password = ctk.CTkEntry(frame, placeholder_text="Password", show="*")
-        self.password.pack(pady=10)
+        # PASSWORD
+        self.password = ctk.CTkEntry(self.frame, placeholder_text="Password", show="*")
+        self.password.pack(pady=10, padx=20, fill="x")
 
-        ctk.CTkButton(frame, text="Login", command=self.check_login).pack(pady=20)
+        # STATUS
+        self.status = ctk.CTkLabel(self.frame, text="")
+        self.status.pack(pady=5)
+
+        # BUTTON
+        ctk.CTkButton(
+            self.frame,
+            text="Login",
+            command=self.check_login,
+            fg_color="#1f6aa5"
+        ).pack(pady=20, fill="x", padx=20)
 
     def check_login(self):
         user = self.username.get().strip()
         pwd = self.password.get().strip()
 
-        # =========================
-        # 🔥 ADMIN CHECK (STATIC)
-        # =========================
         if user == "admin" and verify_password(pwd, hash_password("1234")):
-            messagebox.showinfo("OK", "Admin login success")
+            self.status.configure(text="✔ Admin access granted", text_color="green")
             self.on_success(role="admin", username=user)
             return
 
-        # =========================
-        # 🔥 USER CHECK (DATABASE ROLE)
-        # =========================
         role = self.db.get_user_role(user)
 
         if role is None:
-            messagebox.showerror("Error", "User not found")
+            self.status.configure(text="✖ User not found", text_color="red")
             return
 
-        if role == "user":
-            messagebox.showinfo("OK", "User login success")
-            self.on_success(role="user", username=user)
-            return
-
-        if role == "admin":
-            messagebox.showinfo("OK", "Admin login success")
-            self.on_success(role="admin", username=user)
-            return
-
-        messagebox.showerror("Error", "Access denied")
+        self.status.configure(text=f"✔ Login success ({role})", text_color="green")
+        self.on_success(role=role, username=user)
