@@ -1,5 +1,5 @@
 {
-    "lock_timeout": 49,
-    "warn_before": 20,
+    "lock_timeout": 20,
+    "warn_before": 9,
     "show_score": true
 }
