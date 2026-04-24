@@ -10,14 +10,12 @@ class FaceDetector:
         if frame is None:
             return []
 
-        # 🔹 réduire la taille pour accélérer
         small_frame = cv2.resize(frame, (0, 0), fx=0.25, fy=0.25)
         rgb = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
         try:
             boxes = face_recognition.face_locations(rgb)
 
-            # 🔹 remettre à l'échelle originale
             scaled_boxes = []
             for top, right, bottom, left in boxes:
                 scaled_boxes.append((

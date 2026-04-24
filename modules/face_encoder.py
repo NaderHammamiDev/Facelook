@@ -20,17 +20,11 @@ class FaceEncoder:
  
             emb = np.array(encodings[0], dtype=np.float32)
  
-            # vérification shape
             if emb.shape != (128,):
                 return None
  
-            # vérification NaN / inf
             if not np.isfinite(emb).all():
                 return None
- 
-            # ✅ PAS de normalisation :
-            #    face_recognition est conçu pour la distance L2 sur vecteurs bruts.
-            #    Normaliser détruit la métrique et rend tous les visages similaires.
             return emb
  
         except Exception as e:

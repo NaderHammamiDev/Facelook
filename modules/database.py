@@ -27,9 +27,7 @@ class DatabaseManager:
 
         self.create_tables()
 
-    # =========================
-    # TABLES
-    # =========================
+    
     def create_tables(self):
 
         self.conn.execute("""
@@ -46,7 +44,7 @@ class DatabaseManager:
         )
         """)
 
-        # POLICY TABLE
+        
         self.conn.execute("""
         CREATE TABLE IF NOT EXISTS privacy_policy (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -56,7 +54,7 @@ class DatabaseManager:
         )
         """)
 
-        # AUDIT TABLE
+        
         self.conn.execute("""
         CREATE TABLE IF NOT EXISTS audit_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,9 +67,7 @@ class DatabaseManager:
         self.conn.commit()
         self.init_privacy_policy()
 
-    # =========================
-    # POLICY INIT
-    # =========================
+    
     def init_privacy_policy(self):
         cursor = self.conn.execute("SELECT COUNT(*) FROM privacy_policy")
         if cursor.fetchone()[0] == 0:
@@ -85,9 +81,7 @@ class DatabaseManager:
             ))
             self.conn.commit()
 
-    # =========================
-    # STORE
-    # =========================
+    
     def store_embedding(self, name, embedding, role="user", consent=1, consent_version="v1.0"):
         try:
             encrypted = encrypt(embedding.tobytes())
@@ -116,9 +110,7 @@ class DatabaseManager:
         except Exception as e:
             print("DB ERROR:", e)
 
-    # =========================
-    # LOAD
-    # =========================
+
     def load_embeddings(self):
         cursor = self.conn.execute("""
             SELECT name, embedding FROM users WHERE consent=1
@@ -141,9 +133,7 @@ class DatabaseManager:
 
         return data
 
-    # =========================
-    # DELETE
-    # =========================
+
     def delete_user(self, name):
         try:
             self.conn.execute("DELETE FROM users WHERE name=?", (name,))
@@ -153,18 +143,14 @@ class DatabaseManager:
         except:
             return False
 
-    # =========================
-    # UPDATE LOGIN
-    # =========================
+   
     def update_last_login(self, name):
         self.conn.execute("""
             UPDATE users SET last_login=CURRENT_TIMESTAMP WHERE name=?
         """, (name,))
         self.conn.commit()
 
-    # =========================
-    # CLEANUP RGPD
-    # =========================
+
     def cleanup_old_data(self):
         self.conn.execute("""
             DELETE FROM users
@@ -172,9 +158,7 @@ class DatabaseManager:
         """, (RETENTION_DAYS,))
         self.conn.commit()
 
-    # =========================
-    # USER DATA
-    # =========================
+ 
     def get_user_data(self, name):
         cursor = self.conn.execute("""
             SELECT name, consent, consent_date, consent_version,
@@ -198,9 +182,7 @@ class DatabaseManager:
             "export_date": datetime.datetime.utcnow().isoformat()
         }
 
-    # =========================
-    # POLICY GET
-    # =========================
+  
     def get_privacy_policy(self):
         cursor = self.conn.execute("""
             SELECT version, date, text
@@ -220,9 +202,6 @@ class DatabaseManager:
             "text": row[2]
         }
 
-    # =========================
-    # AUDIT LOG
-    # =========================
     def log_audit(self, action, user):
         self.conn.execute("""
             INSERT INTO audit_logs (action, user, timestamp)
@@ -231,9 +210,8 @@ class DatabaseManager:
 
         self.conn.commit()
 
-    # =========================
-    # EXPORT USER
-    # =========================
+    # EXPORT USER==
+
     def export_user_json(self, name):
         data = self.get_user_data(name)
         if not data:
@@ -285,9 +263,8 @@ class DatabaseManager:
         self.log_audit("EXPORT_PDF", name)
         return path
 
-    # =========================
-    # EXPORT AUDIT
-    # =========================
+    # EXPORT audit==
+
     def export_audit_json(self):
         cursor = self.conn.execute("SELECT action, user, timestamp FROM audit_logs")
         data = [{"action": a, "user": u, "timestamp": t} for a, u, t in cursor.fetchall()]
@@ -331,8 +308,6 @@ class DatabaseManager:
 
         return path
 
-    # =========================
-    # CLOSE
-    # =========================
+
     def close(self):
         self.conn.close()

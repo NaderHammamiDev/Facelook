@@ -127,7 +127,7 @@ class FaceLockApp:
             self.current_frame = frame.copy()
             now = time.time()
 
-            # 🔥 reload config (IMPORTANT)
+            # reload config (IMPORTANT)
             self.cfg = load_config()
 
             # unlock event
@@ -150,9 +150,8 @@ class FaceLockApp:
                 cv2.putText(frame, label, (left, top - 10),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.8, color, 2)
 
-                # =========================
-                # 🔥 L2 DISPLAY FIX
-                # =========================
+                
+                # L2 DISPLAY FIX
                 if self.cfg.get("show_score", True):
 
                     text = "L2: OK" if user else "L2: Unknown"
@@ -169,9 +168,9 @@ class FaceLockApp:
                 if user:
                     known_face_found = True
 
-            # =========================
+            
             # SECURITY LOGIC
-            # =========================
+
             if self.face_verify_start is not None:
                 elapsed = now - self.face_verify_start
 
@@ -226,7 +225,7 @@ class FaceLockApp:
         cv2.destroyAllWindows()
 
 
-# =========================
+# ========= main
 if __name__ == "__main__":
     root = tk.Tk()
 

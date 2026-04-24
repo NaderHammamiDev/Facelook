@@ -26,14 +26,14 @@ class FaceAuthenticator:
         self.reload_faces()
         print("Loaded users:", len(self.known_faces))
  
-    # =========================
+    
     def audit(self, action, name):
         import datetime
         os.makedirs("logs", exist_ok=True)
         with open("logs/audit.log", "a", encoding="utf-8") as f:
             f.write(f"{datetime.datetime.now()} | {action} | {name}\n")
  
-    # =========================
+    
     def _load_safe_faces(self):
         data = self.db.load_embeddings()
         safe = []
@@ -61,16 +61,16 @@ class FaceAuthenticator:
  
         return safe
  
-    # =========================
+    
     def reload_faces(self):
         self.known_faces = self._load_safe_faces()
  
-    # =========================
+    
     def log(self, action, name):
         print(f"[AUDIT] {action} - {name}")
         logging.info(f"{action} {name}")
  
-    # =========================
+    
     def authenticate(self, face_image):
  
         emb = self.encoder.encode_face(face_image)
@@ -95,7 +95,7 @@ class FaceAuthenticator:
             elif dist < second_best:
                 second_best = dist
  
-        # GAP CHECK
+        
         if len(self.known_faces) <= 1:
             passes_gap = True
         else:
@@ -121,7 +121,7 @@ class FaceAuthenticator:
         self.audit("AUTH_FAIL", "UNKNOWN")
         return None
  
-    # =========================
+    
     def enroll_user(self, name, face_image, consent=False, role="user"):
  
         if not consent:
@@ -144,7 +144,6 @@ class FaceAuthenticator:
         self.log("ENROLL_SUCCESS", name)
         return True
  
-    # =========================
     def delete_user(self, name):
         ok = self.db.delete_user(name)
  
@@ -156,7 +155,7 @@ class FaceAuthenticator:
  
         return False
  
-    # =========================
+    # exportation des données   
     def get_user_data(self, name):
         return self.db.get_user_data(name)
  
